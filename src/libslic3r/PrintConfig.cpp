@@ -5481,21 +5481,27 @@ void DynamicPrintConfig::normalize_fdm()
     if (this->has("wipe_tower_extruder")) {
         // If invalid, replace with 0.
         int extruder = this->opt<ConfigOptionInt>("wipe_tower_extruder")->value;
-        int num_extruders = this->opt<ConfigOptionFloats>("nozzle_diameter")->size();
-        if (extruder < 0 || extruder > num_extruders)
-            this->option("wipe_tower_extruder")->setInt(0);
+        const auto *nozzle_diameter = this->opt<ConfigOptionFloats>("nozzle_diameter");
+        if (nozzle_diameter) {
+            int num_extruders = nozzle_diameter->size();
+            if (extruder < 0 || extruder > num_extruders)
+                this->option("wipe_tower_extruder")->setInt(0);
+        }
     }
 
     if (!this->has("solid_infill_extruder") && this->has("infill_extruder"))
         this->option("solid_infill_extruder", true)->setInt(this->option("infill_extruder")->getInt());
 
     if (this->has("bed_temperature_extruder")) {
-        const size_t num_extruders = this->opt<ConfigOptionFloats>("nozzle_diameter")->size();
-        const int    extruder      = this->opt<ConfigOptionInt>("bed_temperature_extruder")->value;
+        const auto *nozzle_diameter = this->opt<ConfigOptionFloats>("nozzle_diameter");
+        if (nozzle_diameter) {
+            const size_t num_extruders = nozzle_diameter->size();
+            const int    extruder      = this->opt<ConfigOptionInt>("bed_temperature_extruder")->value;
 
-        // Replace invalid values with 0.
-        if (extruder < 0 || extruder > num_extruders) {
-            this->option("bed_temperature_extruder")->setInt(0);
+            // Replace invalid values with 0.
+            if (extruder < 0 || extruder > num_extruders) {
+                this->option("bed_temperature_extruder")->setInt(0);
+            }
         }
     }
 
@@ -6041,6 +6047,11 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def = this->add("info", coBool);
     def->label = L("Output Model Info");
     def->tooltip = L("Write information about the model to the console.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("info-json", coBool);
+    def->label = L("Output Model Info (JSON)");
+    def->tooltip = L("Write information about the model to the console in JSON format.");
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("export_obj", coBool);

@@ -11680,9 +11680,9 @@ bool optimize_SubglobalConsequentialPolygonNonoverlappingBinaryCentered(const So
 		    printf("  %d\n", undecided[j]);
 		}
 		printf("Missing\n");
-		for (unsigned int j = 0; j < missing.size(); ++j)
+		for (unsigned int j = 0; j < remaining_local.size(); ++j)
 		{
-		    printf("  %d\n", missing[j]);
+		    printf("  %d\n", remaining_local[j]);
 		}		
 		printf("Decided\n");
 		for (unsigned int j = 0; j < decided_polygons.size(); ++j)

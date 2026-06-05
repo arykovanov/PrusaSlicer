@@ -2,6 +2,7 @@
 #include <string>
 #include <cstring>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <math.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -287,6 +288,55 @@ bool process_actions(Data& cli, const DynamicPrintConfig& print_config, std::vec
             model.add_default_instances();
             model.print_info();
         }
+    }
+
+    if (actions.has("info-json")) {
+        if (models.empty()) {
+            boost::nowide::cerr << "error: cannot show info for empty models." << std::endl;
+            return 1;
+        }
+        nlohmann::json json_out = nlohmann::json::array();
+        for (Model& model : models) {
+            model.add_default_instances();
+            for (const ModelObject* o : model.objects) {
+                TriangleMesh mesh = o->raw_mesh();
+                BoundingBoxf3 bb = mesh.bounding_box();
+                Vec3d size = bb.size();
+                nlohmann::json obj_json = {
+                    {"input_file", boost::filesystem::path(o->input_file).filename().string()},
+                    {"size_x", size(0)},
+                    {"size_y", size(1)},
+                    {"size_z", size(2)},
+                    {"min_x", bb.min(0)},
+                    {"min_y", bb.min(1)},
+                    {"min_z", bb.min(2)},
+                    {"max_x", bb.max(0)},
+                    {"max_y", bb.max(1)},
+                    {"max_z", bb.max(2)},
+                    {"number_of_facets", mesh.facets_count()},
+                    {"manifold", mesh.stats().manifold() ? "yes" : "no"},
+                    {"number_of_parts", mesh.stats().number_of_parts},
+                    {"volume", mesh.volume()}
+                };
+                if (!mesh.stats().manifold()) {
+                    obj_json["open_edges"] = mesh.stats().open_edges;
+                }
+                if (mesh.stats().repaired()) {
+                    const RepairedMeshErrors& stats = mesh.stats().repaired_errors;
+                    nlohmann::json repaired = {};
+                    if (stats.degenerate_facets > 0) repaired["degenerate_facets"] = stats.degenerate_facets;
+                    if (stats.edges_fixed > 0) repaired["edges_fixed"] = stats.edges_fixed;
+                    if (stats.facets_removed > 0) repaired["facets_removed"] = stats.facets_removed;
+                    if (stats.facets_reversed > 0) repaired["facets_reversed"] = stats.facets_reversed;
+                    if (stats.backwards_edges > 0) repaired["backwards_edges"] = stats.backwards_edges;
+                    if (!repaired.empty()) {
+                        obj_json["repaired_errors"] = repaired;
+                    }
+                }
+                json_out.push_back(obj_json);
+            }
+        }
+        printf("%s\n", json_out.dump(4).c_str());
     }
 
     if (actions.has("save")) {

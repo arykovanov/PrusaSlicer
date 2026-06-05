@@ -80,8 +80,11 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &bed_shape, const double max_p
         m_circle = Geometry::smallest_enclosing_circle_welzl(m_convex_hull.points);
         m_type   = (m_convex_hull.area() - m_area) < sqr(SCALED_EPSILON) ? Type::Convex : Type::Custom;
         // Initialize the top / bottom decomposition for inside convex polygon check. Do it with two different epsilons applied.
-        auto convex_decomposition = [](const Polygon &in, double epsilon) {
-            Polygon src = expand(in, float(epsilon)).front();
+        auto convex_decomposition = [](const Polygon &in, double epsilon) -> std::pair<std::vector<Vec2d>, std::vector<Vec2d>> {
+            auto expanded = expand(in, float(epsilon));
+            if (expanded.empty())
+                return {};
+            Polygon src = expanded.front();
             std::vector<Vec2d> pts;
             pts.reserve(src.size());
             for (const Point &pt : src.points)
