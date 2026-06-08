@@ -281,7 +281,7 @@ bool process_actions(Data& cli, const DynamicPrintConfig& print_config, std::vec
     if (actions.has("info")) {
         if (models.empty()) {
             boost::nowide::cerr << "error: cannot show info for empty models." << std::endl;
-            return 1;
+            return false;
         }
         // --info works on unrepaired model
         for (Model& model : models) {
@@ -293,7 +293,7 @@ bool process_actions(Data& cli, const DynamicPrintConfig& print_config, std::vec
     if (actions.has("info-json")) {
         if (models.empty()) {
             boost::nowide::cerr << "error: cannot show info for empty models." << std::endl;
-            return 1;
+            return false;
         }
         nlohmann::json json_out = nlohmann::json::array();
         for (Model& model : models) {
@@ -347,7 +347,7 @@ bool process_actions(Data& cli, const DynamicPrintConfig& print_config, std::vec
 
     if (models.empty() && (actions.has("export_stl") || actions.has("export_obj") || actions.has("export_3mf"))) {
         boost::nowide::cerr << "error: cannot export empty models." << std::endl;
-        return 1;
+        return false;
     }
 
     const std::string output = cli.misc_config.has("output") ? cli.misc_config.opt_string("output") : "";
@@ -356,28 +356,28 @@ bool process_actions(Data& cli, const DynamicPrintConfig& print_config, std::vec
         for (auto& model : models)
             model.add_default_instances();
         if (!export_models(models, IO::STL, output))
-            return 1;
+            return false;
     }
     if (actions.has("export_obj")) {
         for (auto& model : models)
             model.add_default_instances();
         if (!export_models(models, IO::OBJ, output))
-            return 1;
+            return false;
     }
     if (actions.has("export_3mf")) {
         if (!export_models(models, IO::TMF, output))
-            return 1;
+            return false;
     }
 
     if (actions.has("slice") || actions.has("export_gcode") || actions.has("export_sla")) {
         PrinterTechnology       printer_technology = Preset::printer_technology(print_config);
         if (actions.has("export_gcode") && printer_technology == ptSLA) {
             boost::nowide::cerr << "error: cannot export G-code for an FFF configuration" << std::endl;
-            return 1;
+            return false;
         }
         else if (actions.has("export_sla") && printer_technology == ptFFF) {
             boost::nowide::cerr << "error: cannot export SLA slices for a SLA configuration" << std::endl;
-            return 1;
+            return false;
         }
 
         const Vec2crd           gap{ s_multiple_beds.get_bed_gap() };
@@ -423,7 +423,7 @@ bool process_actions(Data& cli, const DynamicPrintConfig& print_config, std::vec
             std::string err = print->validate();
             if (!err.empty()) {
                 boost::nowide::cerr << err << std::endl;
-                return 1;
+                return false;
             }
 
             std::string outfile = output;
